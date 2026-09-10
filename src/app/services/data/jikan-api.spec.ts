@@ -1,42 +1,62 @@
 import { TestBed } from '@angular/core/testing';
-import { provideHttpClientTesting } from '@angular/common/http/testing';
 import { provideHttpClient } from '@angular/common/http';
+import { HttpTestingController, provideHttpClientTesting } from '@angular/common/http/testing';
 
-import { JikanAPI } from './jikan-api';
+import { JikanAPI, Season } from './jikan-api';
 
 describe('JikanAPI', () => {
   let service: JikanAPI;
+  let httpTesting: HttpTestingController;
 
   beforeEach(() => {
     TestBed.configureTestingModule({
       providers: [provideHttpClient(), provideHttpClientTesting(), JikanAPI],
     });
     service = TestBed.inject(JikanAPI);
+    httpTesting = TestBed.inject(HttpTestingController);
+  });
+
+  afterEach(() => {
+    httpTesting.verify();
   });
 
   it('should be created', () => {
     expect(service).toBeTruthy();
   });
 
-  // Additional tests for API methods can be added here, using HttpClientTestingModule to mock HTTP requests
-  it('should fetch recommendations', () => {
-    // Implement test for getAnimeRecommendations method
-    service.getAnimeRecommendations(1).subscribe(recommendations => {
-      expect(recommendations.length).toBeGreaterThanOrEqual(0); // Assuming it returns an array of recommendations
+  it('falls back through the configured providers when a seasonal request fails', () => {
+    let receivedTitles: string[] | undefined;
+
+    service.getSeasonalAnime(Season.Summer).subscribe((response) => {
+      receivedTitles = response.animes.map((anime) => anime.title);
     });
-  });
 
-  it('should fetch anime by ID', () => {
-    // Implement test for getAnimeById method
-  });
+    httpTesting
+      .expectOne((request) =>
+        request.url.startsWith('https://api.jikan.moe/v4/seasons/'),
+      )
+      .flush('', { status: 504, statusText: 'Gateway Time-out' });
 
-  it('should search anime by query', () => {
-    // Implement test for searchAnime method
-  });
+    httpTesting
+      .expectOne((request) =>
+        request.url.startsWith('https://api.tenrai.org/v1/seasons/'),
+      )
+      .flush('', { status: 503, statusText: 'Service Unavailable' });
 
-  it('should fetch seasonal anime', () => {
-    service.getSeasonalAnime().subscribe(seasonalAnime => {
-      expect(seasonalAnime.animes.length).toBeGreaterThanOrEqual(0); // Assuming it returns an array of seasonal anime
-    });
+    httpTesting
+      .expectOne((request) =>
+        request.url.startsWith('https://jikan.lucashdo.com/v1/seasons/'),
+      )
+      .flush({
+        pagination: {
+          last_visible_page: 1,
+          has_next_page: false,
+          current_page: 1,
+          items: { count: 1, total: 1, per_page: 25 },
+        },
+        data: [{ mal_id: 1, url: '', title: 'Fallback anime', images: { jpg: { image_url: '' } } }],
+      });
+
+    expect(receivedTitles).toEqual(['Fallback anime']);
   });
 });
