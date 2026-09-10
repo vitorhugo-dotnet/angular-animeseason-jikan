@@ -1,13 +1,17 @@
 import { HttpClient } from '@angular/common/http';
 import { Injectable, inject } from '@angular/core';
-import { map, Observable } from 'rxjs';
+import { catchError, map, Observable, throwError } from 'rxjs';
 
 @Injectable({
   providedIn: 'root',
 })
 export class JikanAPI {
-  private readonly baseUrl = 'https://api.jikan.moe/v4';
-  private http = inject(HttpClient);
+  private readonly providers = [
+    'https://api.jikan.moe/v4',
+    'https://api.tenrai.org/v1',
+    'https://jikan.lucashdo.com/v1',
+  ];
+  private readonly http = inject(HttpClient);
   private readonly currentYear = new Date().getFullYear();
   private readonly currentSeason = this.getCurrentSeason();
 
@@ -30,16 +34,14 @@ export class JikanAPI {
   }
 
   getAnimeRecommendations(animeId: number): Observable<Anime[]> {
-    return this.http
-      .get<{ data: Array<{ entry: AnimeApiModel[] }> }>(`${this.baseUrl}/anime/${animeId}/recommendations`)
-      .pipe(
-        map((response) =>
-          response.data
-            .flatMap((item) => item.entry)
-            .filter((entry): entry is AnimeApiModel => !!entry?.mal_id)
-            .map((entry) => this.mapAnime(entry)),
-        ),
-      );
+    return this.get<{ data: Array<{ entry: AnimeApiModel[] }> }>(`/anime/${animeId}/recommendations`).pipe(
+      map((response) =>
+        response.data
+          .flatMap((item) => item.entry)
+          .filter((entry): entry is AnimeApiModel => !!entry?.mal_id)
+          .map((entry) => this.mapAnime(entry)),
+      ),
+    );
   }
 
   getSeasonalAnime(
@@ -47,29 +49,51 @@ export class JikanAPI {
     page: number = 1,
     sfw: boolean = true,
   ): Observable<Pagination<Anime[]>> {
-    return this.http
-      .get<{ pagination: PaginationMeta; data: AnimeApiModel[] }>(
-        `${this.baseUrl}/seasons/${this.currentYear}/${season}`,
-        { params: { page, sfw } },
-      )
-      .pipe(
-        map((res) => ({
-          ...res.pagination,
-          animes: res.data.map((anime) => this.mapAnime(anime)),
-        })),
-      );
+    return this.get<{ pagination: PaginationMeta; data: AnimeApiModel[] }>(
+      `/seasons/${this.currentYear}/${season}`,
+      { page, sfw },
+    ).pipe(
+      map((res) => ({
+        ...res.pagination,
+        animes: res.data.map((anime) => this.mapAnime(anime)),
+      })),
+    );
   }
 
   getAnimeById(id: number): Observable<Anime> {
-    return this.http
-      .get<{ data: AnimeApiModel }>(`${this.baseUrl}/anime/${id}/full`)
-      .pipe(map((res) => this.mapAnime(res.data)));
+    return this.get<{ data: AnimeApiModel }>(`/anime/${id}/full`).pipe(
+      map((res) => this.mapAnime(res.data)),
+    );
   }
 
   searchAnime(query: string): Observable<Anime[]> {
-    return this.http
-      .get<{ data: AnimeApiModel[] }>(`${this.baseUrl}/anime`, { params: { q: query } })
-      .pipe(map((res) => res.data.map((anime) => this.mapAnime(anime))));
+    return this.get<{ data: AnimeApiModel[] }>('/anime', { q: query }).pipe(
+      map((res) => res.data.map((anime) => this.mapAnime(anime))),
+    );
+  }
+
+  private get<T>(
+    path: string,
+    params?: Record<string, string | number | boolean>,
+  ): Observable<T> {
+    return this.getFromProvider<T>(path, params, 0);
+  }
+
+  private getFromProvider<T>(
+    path: string,
+    params: Record<string, string | number | boolean> | undefined,
+    providerIndex: number,
+  ): Observable<T> {
+    return this.http.get<T>(`${this.providers[providerIndex]}${path}`, { params }).pipe(
+      catchError((error) => {
+        const nextProviderIndex = providerIndex + 1;
+        if (nextProviderIndex >= this.providers.length) {
+          return throwError(() => error);
+        }
+
+        return this.getFromProvider<T>(path, params, nextProviderIndex);
+      }),
+    );
   }
 
   private mapAnime(anime: AnimeApiModel): Anime {
