@@ -1,18 +1,15 @@
-name: Deploy to GitHub Pages
+name: Deploy to Cloudflare Workers
 
 on:
   push:
-    branches:
-      - master
+    branches: [master]
   workflow_dispatch:
 
 permissions:
   contents: read
-  pages: write
-  id-token: write
 
 concurrency:
-  group: pages
+  group: cloudflare-workers
   cancel-in-progress: true
 
 jobs:
@@ -34,21 +31,29 @@ jobs:
       - name: Build
         run: npm run build -- --configuration production --base-href /
 
-      - name: Copy index.html to 404.html for SPA routing
-        run: cp dist/angular-apirest-anime-anilist/browser/index.html dist/angular-apirest-anime-anilist/browser/404.html
-
-      - name: Upload Pages artifact
-        uses: actions/upload-pages-artifact@v3
+      - name: Upload web artifact
+        uses: actions/upload-artifact@v4
         with:
+          name: animeseason-web
           path: dist/angular-apirest-anime-anilist/browser
+          if-no-files-found: error
 
   deploy:
     needs: build
     runs-on: ubuntu-latest
-    environment:
-      name: github-pages
-      url: ${{ steps.deployment.outputs.page_url }}
     steps:
-      - name: Deploy to GitHub Pages
-        id: deployment
-        uses: actions/deploy-pages@v4
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Download web artifact
+        uses: actions/download-artifact@v4
+        with:
+          name: animeseason-web
+          path: dist/angular-apirest-anime-anilist/browser
+
+      - name: Deploy to Cloudflare Workers
+        uses: cloudflare/wrangler-action@v4
+        with:
+          wranglerVersion: "4"
+          apiToken: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          accountId: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
