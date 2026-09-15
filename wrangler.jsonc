@@ -1,0 +1,15 @@
+{
+  "$schema": "node_modules/wrangler/config-schema.json",
+  "name": "animeseason",
+  "compatibility_date": "2026-09-15",
+  "assets": {
+    "directory": "./dist/angular-apirest-anime-anilist/browser",
+    "not_found_handling": "single-page-application"
+  },
+  "routes": [
+    {
+      "pattern": "animeseason.hugojava.dev",
+      "custom_domain": true
+    }
+  ]
+}
