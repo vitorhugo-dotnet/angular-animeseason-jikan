@@ -1,4 +1,5 @@
 import { ComponentFixture, TestBed } from '@angular/core/testing';
+import { provideRouter } from '@angular/router';
 
 import { Anime } from './anime';
 
@@ -9,11 +10,11 @@ describe('Anime', () => {
   beforeEach(async () => {
     await TestBed.configureTestingModule({
       imports: [Anime],
+      providers: [provideRouter([])],
     }).compileComponents();
 
     fixture = TestBed.createComponent(Anime);
     component = fixture.componentInstance;
-    await fixture.whenStable();
   });
 
   it('should create', () => {
