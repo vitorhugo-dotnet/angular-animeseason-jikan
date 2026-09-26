@@ -132,6 +132,58 @@ export class Home implements OnInit {
     return anime.score ? anime.score.toFixed(1) : 'N/A';
   }
 
+  nextEpisodeDate(anime: Anime): string {
+    if (anime.status !== 'Currently Airing') {
+      return 'Schedule TBA';
+    }
+
+    const { day, time, timezone } = anime.broadcast ?? {};
+    const weekday = day?.replace(/s$/i, '').toLowerCase();
+    const weekdays = ['sunday', 'monday', 'tuesday', 'wednesday', 'thursday', 'friday', 'saturday'];
+    const targetWeekday = weekdays.indexOf(weekday ?? '');
+    const timeMatch = time?.match(/^(\d{1,2}):(\d{2})$/);
+
+    if (targetWeekday < 0 || !timeMatch || !timezone) {
+      return 'Schedule TBA';
+    }
+
+    try {
+      const now = new Date();
+      const parts = new Intl.DateTimeFormat('en-US', {
+        timeZone: timezone,
+        weekday: 'long',
+        year: 'numeric',
+        month: 'numeric',
+        day: 'numeric',
+        hour: 'numeric',
+        minute: 'numeric',
+        hourCycle: 'h23',
+      }).formatToParts(now);
+      const part = (type: Intl.DateTimeFormatPartTypes) => parts.find((item) => item.type === type)?.value;
+      const currentWeekday = weekdays.indexOf((part('weekday') ?? '').toLowerCase());
+      const hour = Number(part('hour'));
+      const minute = Number(part('minute'));
+      const daysUntil = (targetWeekday - currentWeekday + 7) % 7;
+      const scheduledTimePassed = hour > Number(timeMatch[1]) ||
+        (hour === Number(timeMatch[1]) && minute >= Number(timeMatch[2]));
+      const addDays = daysUntil + (daysUntil === 0 && scheduledTimePassed ? 7 : 0);
+      const scheduledDate = new Date(Date.UTC(
+        Number(part('year')),
+        Number(part('month')) - 1,
+        Number(part('day')) + addDays,
+      ));
+
+      return new Intl.DateTimeFormat('en-US', {
+        timeZone: 'UTC',
+        month: 'short',
+        day: 'numeric',
+        year: 'numeric',
+      }).format(scheduledDate);
+    } catch {
+      return 'Schedule TBA';
+    }
+  }
+
   genre(anime: Anime, index: number): string {
     return anime.genres[index]?.name || (index === 0 ? 'Anime' : 'Series');
   }

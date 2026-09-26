@@ -110,6 +110,7 @@ export class JikanAPI {
       title_japanese: anime.title_japanese,
       type: anime.type,
       episodes: anime.episodes,
+      broadcast: anime.broadcast,
       status: anime.status,
       score: anime.score,
       synopsis: anime.synopsis,
@@ -147,6 +148,7 @@ interface AnimeApiModel {
   title_japanese?: string;
   type?: string;
   episodes?: number;
+  broadcast?: AnimeBroadcast;
   status?: string;
   score?: number;
   synopsis?: string;
@@ -194,6 +196,13 @@ export interface Studio {
   url: string;
 }
 
+export interface AnimeBroadcast {
+  day?: string;
+  time?: string;
+  timezone?: string;
+  string?: string;
+}
+
 export interface Pagination<T> {
   last_visible_page: number;
   has_next_page: boolean;
@@ -231,6 +240,7 @@ export interface Anime {
   title_japanese?: string;
   type?: string;
   episodes?: number;
+  broadcast?: AnimeBroadcast;
   status?: string;
   score?: number;
   synopsis?: string;

@@ -73,6 +73,9 @@
                 <span>EP {{ anime.episodes || '?' }} / {{ anime.episodes || '?' }}</span>
                 <span class="pulse-dot"></span>
               </div>
+              <p class="text-xs uppercase tracking-[0.05em] text-secondary">
+                Next episode: {{ nextEpisodeDate(anime) }}
+              </p>
             </div>
           </article>
         }
