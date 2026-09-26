@@ -23,18 +23,24 @@ export class JikanAPI {
     return Season.Fall;
   }
 
-  getSeasonLabel(): string {
-    const translated = {
+  getCurrentSeasonSelection(): SeasonSelection {
+    return { year: this.currentYear, season: this.currentSeason };
+  }
+
+  getSeasonLabel(year: number = this.currentYear, season: Season = this.currentSeason): string {
+    const translated: Record<Season, string> = {
       [Season.Winter]: 'Winter',
       [Season.Spring]: 'Spring',
       [Season.Summer]: 'Summer',
       [Season.Fall]: 'Fall',
     };
-    return `${translated[this.currentSeason]} ${this.currentYear}`;
+    return `${translated[season]} ${year}`;
   }
 
   getAnimeRecommendations(animeId: number): Observable<Anime[]> {
-    return this.get<{ data: Array<{ entry: AnimeApiModel[] }> }>(`/anime/${animeId}/recommendations`).pipe(
+    return this.get<{ data: Array<{ entry: AnimeApiModel[] }> }>(
+      `/anime/${animeId}/recommendations`,
+    ).pipe(
       map((response) =>
         response.data
           .flatMap((item) => item.entry)
@@ -48,9 +54,10 @@ export class JikanAPI {
     season: Season = this.currentSeason,
     page: number = 1,
     sfw: boolean = true,
+    year: number = this.currentYear,
   ): Observable<Pagination<Anime[]>> {
     return this.get<{ pagination: PaginationMeta; data: AnimeApiModel[] }>(
-      `/seasons/${this.currentYear}/${season}`,
+      `/seasons/${year}/${season}`,
       { page, sfw },
     ).pipe(
       map((res) => ({
@@ -72,10 +79,7 @@ export class JikanAPI {
     );
   }
 
-  private get<T>(
-    path: string,
-    params?: Record<string, string | number | boolean>,
-  ): Observable<T> {
+  private get<T>(path: string, params?: Record<string, string | number | boolean>): Observable<T> {
     return this.getFromProvider<T>(path, params, 0);
   }
 
@@ -207,6 +211,11 @@ export enum Season {
   Spring = 'spring',
   Summer = 'summer',
   Fall = 'fall',
+}
+
+export interface SeasonSelection {
+  year: number;
+  season: Season;
 }
 
 export interface Anime {
