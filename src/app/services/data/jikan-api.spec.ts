@@ -24,6 +24,23 @@ describe('JikanAPI', () => {
     expect(service).toBeTruthy();
   });
 
+  it('loads a season for the requested year', () => {
+    service.getSeasonalAnime(Season.Winter, 1, true, 2025).subscribe();
+
+    const request = httpTesting.expectOne(
+      'https://api.jikan.moe/v4/seasons/2025/winter?page=1&sfw=true',
+    );
+    request.flush({
+      pagination: {
+        last_visible_page: 1,
+        has_next_page: false,
+        current_page: 1,
+        items: { count: 0, total: 0, per_page: 25 },
+      },
+      data: [],
+    });
+  });
+
   it('falls back through the configured providers when a seasonal request fails', () => {
     let receivedTitles: string[] | undefined;
 
@@ -32,21 +49,15 @@ describe('JikanAPI', () => {
     });
 
     httpTesting
-      .expectOne((request) =>
-        request.url.startsWith('https://api.jikan.moe/v4/seasons/'),
-      )
+      .expectOne((request) => request.url.startsWith('https://api.jikan.moe/v4/seasons/'))
       .flush('', { status: 504, statusText: 'Gateway Time-out' });
 
     httpTesting
-      .expectOne((request) =>
-        request.url.startsWith('https://api.tenrai.org/v1/seasons/'),
-      )
+      .expectOne((request) => request.url.startsWith('https://api.tenrai.org/v1/seasons/'))
       .flush('', { status: 503, statusText: 'Service Unavailable' });
 
     httpTesting
-      .expectOne((request) =>
-        request.url.startsWith('https://jikan.lucashdo.com/v1/seasons/'),
-      )
+      .expectOne((request) => request.url.startsWith('https://jikan.lucashdo.com/v1/seasons/'))
       .flush({
         pagination: {
           last_visible_page: 1,

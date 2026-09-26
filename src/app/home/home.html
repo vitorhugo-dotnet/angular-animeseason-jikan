@@ -3,7 +3,9 @@
     <div class="mb-12 flex flex-col gap-6 lg:flex-row lg:items-end lg:justify-between">
       <div>
         <p class="neon-label mb-2 text-secondary">Season Protocol</p>
-        <h1 class="neon-title max-w-2xl text-4xl font-black uppercase tracking-[-0.02em] text-on-surface sm:text-5xl">
+        <h1
+          class="neon-title max-w-2xl text-4xl font-black uppercase tracking-[-0.02em] text-on-surface sm:text-5xl"
+        >
           {{ currentSeasonLabel() }}
         </h1>
         <div class="mt-3 h-0.75 w-28 bg-linear-to-r from-secondary to-transparent"></div>
@@ -14,6 +16,23 @@
         atmosphere.
       </p>
     </div>
+
+    <nav class="mb-10 overflow-x-auto" aria-label="Season navigation">
+      <div class="flex w-max min-w-full gap-3 pb-3">
+        @for (option of seasonOptions; track option.key) {
+          <button
+            type="button"
+            class="chip shrink-0 cursor-pointer transition-colors hover:border-secondary hover:text-secondary"
+            [class.chip-primary]="isSelectedSeason(option)"
+            [class.chip-neutral]="!isSelectedSeason(option)"
+            [attr.aria-pressed]="isSelectedSeason(option)"
+            (click)="selectSeason(option)"
+          >
+            {{ option.label }}
+          </button>
+        }
+      </div>
+    </nav>
 
     @if (anime$ | async; as animePagination) {
       <div class="grid grid-cols-1 gap-7 md:grid-cols-2 xl:grid-cols-4">
@@ -42,11 +61,15 @@
                 <span class="chip chip-neutral">{{ genre(anime, 1) }}</span>
               </div>
 
-              <h2 class="text-2xl font-bold uppercase tracking-[-0.02em] text-on-surface transition-colors group-hover:text-secondary">
+              <h2
+                class="text-2xl font-bold uppercase tracking-[-0.02em] text-on-surface transition-colors group-hover:text-secondary"
+              >
                 {{ ellipsis(anime.title, 34) }}
               </h2>
 
-              <div class="flex items-center justify-between text-xs uppercase tracking-[0.05em] text-on-surface-variant">
+              <div
+                class="flex items-center justify-between text-xs uppercase tracking-[0.05em] text-on-surface-variant"
+              >
                 <span>EP {{ anime.episodes || '?' }} / {{ anime.episodes || '?' }}</span>
                 <span class="pulse-dot"></span>
               </div>
@@ -55,7 +78,12 @@
         }
       </div>
 
-      <div id="anchor" appIntersect (intersect)="loadMore()" class="mt-12 flex min-h-12 items-center justify-center">
+      <div
+        id="anchor"
+        appIntersect
+        (intersect)="loadMore()"
+        class="mt-12 flex min-h-12 items-center justify-center"
+      >
         @if (loading()) {
           <span class="neon-label text-secondary">Loading next wave...</span>
         }
